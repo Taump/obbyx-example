@@ -1,23 +1,11 @@
 import { SpendingBudget, payingFetch } from '@obbyx/sdk';
+import { ROUTES, exampleRequest } from './api.js';
 import { withBuyer } from './buyer.js';
 import { NETWORK, SELLER_URL, gbyte, logger } from './config.js';
 
 // Calls the paid API N times over the open channel (obbyx SDK: payingFetch).
 // Each call: 402 offer → sign a voucher → retry with it → 200. Nothing on-chain.
 const calls = Number(process.argv[2] ?? 20);
-
-const requests: [string, RequestInit][] = [
-  ['/api/tick', {}],
-  ['/api/quote?symbol=GBYTE', {}],
-  [
-    '/api/wordcount',
-    {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ text: 'one voucher per call' }),
-    },
-  ],
-];
 
 // Limits for this run: per call and in total (bytes).
 const budget = new SpendingBudget({
@@ -30,7 +18,7 @@ await withBuyer(async (buyer) => {
   let total = 0n;
 
   for (let i = 1; i <= calls; i++) {
-    const [path, init] = requests[(i - 1) % requests.length]!;
+    const [path, init] = exampleRequest(ROUTES[(i - 1) % ROUTES.length]!);
     const { response, payment } = await payingFetch(`${SELLER_URL}${path}`, init, {
       mechanisms: { batch: buyer.batch }, // channels only, no on-chain fallback
       network: NETWORK.caip2,

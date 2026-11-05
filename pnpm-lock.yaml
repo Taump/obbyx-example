@@ -26,6 +26,9 @@ importers:
       '@x402/express':
         specifier: ^2.30.0
         version: 2.30.0(express@5.3.0)(typescript@7.0.2)
+      '@x402/extensions':
+        specifier: 2.30.0
+        version: 2.30.0(typescript@7.0.2)
       '@x402/fetch':
         specifier: ^2.30.0
         version: 2.30.0

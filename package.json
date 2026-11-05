@@ -14,7 +14,8 @@
     "channel": "tsx src/channel.ts",
     "pay": "tsx src/pay.ts",
     "pay:x402": "tsx src/pay-x402.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "catalog": "tsx src/catalog.ts"
   },
   "dependencies": {
     "@obbyx/obyte": "^0.1.1",
@@ -22,6 +23,7 @@
     "@obbyx/x402-obyte": "^0.2.2",
     "@x402/core": "^2.30.0",
     "@x402/express": "^2.30.0",
+    "@x402/extensions": "2.30.0",
     "@x402/fetch": "^2.30.0",
     "express": "^5.3.0",
     "obyte": "^0.2.1"

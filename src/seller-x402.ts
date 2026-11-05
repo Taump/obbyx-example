@@ -2,26 +2,34 @@ import { mkdirSync } from 'node:fs';
 import express from 'express';
 import { HTTPFacilitatorClient } from '@x402/core/http';
 import { paymentMiddleware, x402ResourceServer } from '@x402/express';
+import { bazaarResourceServerExtension, declareDiscoveryExtension } from '@x402/extensions/bazaar';
 import { ConsumedProofsStore, ObyteBatchServer } from '@obbyx/sdk';
-import { ROUTES } from './api.js';
+import { ROUTES, SERVICE_NAME } from './api.js';
 import { FACILITATOR_URL, MIN_CHANNEL_TIMEOUT, NETWORK, PORT, logger, sellerConfig } from './config.js';
 
 // The same seller on the official x402 stack: @x402/express + obbyx's
 // ObyteBatchServer. Note: unlike ObytePaywall, repeating a request with an
 // already used voucher gets a 402 instead of the stored response.
+//
+// It also lists the routes in the x402 catalog (Bazaar): each 402 carries a
+// card of the route, and after the first paid call the facilitator adds it to
+// its catalog (GET /discovery/resources).
 const { payTo, secret } = sellerConfig();
 mkdirSync('data', { recursive: true });
 
-const server = new x402ResourceServer(new HTTPFacilitatorClient({ url: FACILITATOR_URL })).register(
-  NETWORK.caip2,
-  new ObyteBatchServer({
-    sellerId: 'obbyx-channels-example',
-    secret,
-    proofs: new ConsumedProofsStore('data/proofs-x402.db'),
-    logger,
-    minChannelTimeoutSeconds: MIN_CHANNEL_TIMEOUT,
-  }),
-);
+const server = new x402ResourceServer(new HTTPFacilitatorClient({ url: FACILITATOR_URL }))
+  .register(
+    NETWORK.caip2,
+    new ObyteBatchServer({
+      sellerId: 'obbyx-channels-example',
+      secret,
+      proofs: new ConsumedProofsStore('data/proofs-x402.db'),
+      logger,
+      minChannelTimeoutSeconds: MIN_CHANNEL_TIMEOUT,
+    }),
+  )
+  // Adds the HTTP method (and route template) to each route's card at request time.
+  .registerExtension(bazaarResourceServerExtension);
 
 const app = express();
 app.use(express.json());
@@ -43,6 +51,15 @@ app.use(
             price: `${r.price} bytes`,
           },
           description: r.description,
+          mimeType: 'application/json',
+          serviceName: SERVICE_NAME,
+          tags: r.tags,
+          // The route's card in the catalog: a sample call and its answer.
+          extensions: declareDiscoveryExtension(
+            r.method === 'POST'
+              ? { bodyType: 'json', input: r.example.input, output: { example: r.example.output } }
+              : { input: r.example.input, output: { example: r.example.output } },
+          ),
         },
       ]),
     ),
