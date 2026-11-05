@@ -1,0 +1,86 @@
+# obbyx facilitator + seller watcher, built straight from GitHub (no local clone).
+#
+#   docker compose up -d --build        # first run builds both images (a few minutes)
+#   docker compose logs -f
+#
+# Variables come from .env of this example (docker compose reads it):
+#   NETWORK             obyte:testnet (CAIP-2 form here; the scripts also accept "testnet")
+#   OBBYX_SELLER_HOME   seller wallet directory, default ~/.obbyx-seller
+#   MIN_CHANNEL_TIMEOUT smallest channel dispute window the facilitator accepts
+#   OBBYX_REF           git branch/tag/commit of obbyx to build, default master
+x-obbyx-src: &obbyx-src https://github.com/Taump/obbyx.git#${OBBYX_REF:-master}
+
+# Same as obbyx's own Dockerfile, plus build tools: better-sqlite3 has no prebuilt
+# binary for every Node/arch (e.g. linux/arm64 on Apple Silicon), and node-gyp
+# needs python3, make and g++ to compile it. openssl is for Prisma's engines.
+x-obbyx-dockerfile: &obbyx-dockerfile |
+  FROM node:24-bookworm-slim AS build
+  ARG APP
+  RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ openssl \
+      && rm -rf /var/lib/apt/lists/*
+  RUN corepack enable && corepack prepare pnpm@12.16.1 --activate
+  WORKDIR /src
+  COPY . .
+  RUN pnpm install --frozen-lockfile
+  RUN pnpm --filter "@obbyx/$${APP}..." build
+  RUN pnpm --filter "@obbyx/$${APP}" deploy --legacy --prod /out
+
+  FROM node:24-bookworm-slim
+  RUN apt-get update && apt-get install -y --no-install-recommends openssl \
+      && rm -rf /var/lib/apt/lists/*
+  ENV NODE_ENV=production
+  WORKDIR /app
+  COPY --from=build --chown=node:node /out /app
+  RUN mkdir -p /data && chown node:node /data
+  USER node
+  VOLUME ["/data"]
+  CMD ["sh", "-c", "npx prisma migrate deploy && exec node dist/main.js"]
+
+services:
+  facilitator:
+    build: { context: *obbyx-src, dockerfile_inline: *obbyx-dockerfile, args: { APP: facilitator } }
+    image: obbyx-facilitator:${OBBYX_REF:-master}
+    restart: unless-stopped
+    environment:
+      HOST: 0.0.0.0 # inside the container; published on localhost only (below)
+      DB_PATH: /data/facilitator.db
+      PACKAGE_KEY_FILE: /data/package.key # encrypts stored vouchers; keep it out of DB copies
+      NETWORKS: ${NETWORK:-obyte:testnet}
+      FINALITY: accepted # demo: answer as soon as the unit is accepted (default: stable)
+      MIN_CHANNEL_TIMEOUT_SECONDS: ${MIN_CHANNEL_TIMEOUT:-3600}
+    ports:
+      - '127.0.0.1:4021:4021'
+    volumes:
+      - facilitator-data:/data
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:4021/health').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  watcher:
+    build: { context: *obbyx-src, dockerfile_inline: *obbyx-dockerfile, args: { APP: watcher } }
+    image: obbyx-watcher:${OBBYX_REF:-master}
+    restart: unless-stopped
+    depends_on:
+      facilitator: { condition: service_healthy }
+    environment:
+      NETWORK: ${NETWORK:-obyte:testnet}
+      FACILITATOR_URL: http://facilitator:4021
+      DB_PATH: /data/watcher.db # the stored vouchers are the seller's money: do not lose this volume
+      OBBYX_HOME: /wallet
+    volumes:
+      - watcher-data:/data
+      # Seller wallet (npx obbyx init with OBBYX_HOME=~/.obbyx-seller). The container runs
+      # as uid 1000; on Linux the wallet file must be readable by that uid.
+      - ${OBBYX_SELLER_HOME:-~/.obbyx-seller}:/wallet:ro
+
+volumes:
+  facilitator-data:
+  watcher-data:

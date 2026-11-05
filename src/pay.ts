@@ -1,0 +1,58 @@
+import { SpendingBudget, payingFetch } from '@obbyx/sdk';
+import { withBuyer } from './buyer.js';
+import { NETWORK, SELLER_URL, gbyte, logger } from './config.js';
+
+// Calls the paid API N times over the open channel (obbyx SDK: payingFetch).
+// Each call: 402 offer → sign a voucher → retry with it → 200. Nothing on-chain.
+const calls = Number(process.argv[2] ?? 20);
+
+const requests: [string, RequestInit][] = [
+  ['/api/tick', {}],
+  ['/api/quote?symbol=GBYTE', {}],
+  [
+    '/api/wordcount',
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ text: 'one voucher per call' }),
+    },
+  ],
+];
+
+// Limits for this run: per call and in total (bytes).
+const budget = new SpendingBudget({
+  perCall: new Map([['base', 10_000n]]),
+  total: new Map([['base', 200_000n]]),
+});
+
+await withBuyer(async (buyer) => {
+  const started = Date.now();
+  let total = 0n;
+
+  for (let i = 1; i <= calls; i++) {
+    const [path, init] = requests[(i - 1) % requests.length]!;
+    const { response, payment } = await payingFetch(`${SELLER_URL}${path}`, init, {
+      mechanisms: { batch: buyer.batch }, // channels only, no on-chain fallback
+      network: NETWORK.caip2,
+      maxAmount: new Map([['base', 10_000n]]),
+      budget,
+      logger,
+    });
+    const body = await response.text();
+
+    if (!response.ok || !payment?.success) {
+      console.log(`#${i} ${path}: HTTP ${response.status} ${payment?.errorReason ?? '(no payment response)'} ${body}`);
+      process.exitCode = 1;
+      return;
+    }
+    const { chargedAmount = '0', channelState } = payment.extra as {
+      chargedAmount?: string;
+      channelState?: { chargedCumulativeAmount?: string };
+    };
+    total += BigInt(chargedAmount);
+    console.log(`#${i} ${path}: paid ${chargedAmount}, cumulative ${channelState?.chargedCumulativeAmount}  ${body}`);
+  }
+
+  const seconds = ((Date.now() - started) / 1000).toFixed(1);
+  console.log(`\n${calls} calls, ${gbyte(total)}, ${seconds} s, 0 on-chain transactions.`);
+});
