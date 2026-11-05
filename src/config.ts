@@ -26,7 +26,15 @@ if (!NETWORK.testnet && process.env['ALLOW_LIVENET'] !== '1') {
 export const FACILITATOR_URL = env('FACILITATOR_URL', 'http://127.0.0.1:4021');
 export const SELLER_URL = env('SELLER_URL', 'http://127.0.0.1:3402');
 export const PORT = Number(env('PORT', '3402'));
-export const MIN_CHANNEL_TIMEOUT = Number(env('MIN_CHANNEL_TIMEOUT', '3600'));
+// Above Obyte's stabilization lag (up to ~2 h): the watcher reacts to a close once it is stable.
+export const MIN_CHANNEL_TIMEOUT = Number(env('MIN_CHANNEL_TIMEOUT', '14400'));
+
+/** Part of every payment binding; both seller variants use the same one. */
+export const SELLER_ID = 'obbyx-channels-example';
+/** The buyer never signs a payment above this price, whatever the seller asks (bytes). */
+export const MAX_PRICE = 10_000n;
+/** Default channel deposit, GBYTE. */
+export const DEFAULT_DEPOSIT = '0.0005';
 
 /** Seller-only settings (read lazily so buyer scripts do not need them). */
 export const sellerConfig = () => ({ payTo: env('PAY_TO'), secret: env('SELLER_SECRET') });

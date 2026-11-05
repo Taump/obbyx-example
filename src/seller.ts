@@ -3,7 +3,7 @@ import express from 'express';
 import { HTTPFacilitatorClient } from '@x402/core/http';
 import { ConsumedProofsStore, ObytePaywall } from '@obbyx/sdk';
 import { ROUTES } from './api.js';
-import { FACILITATOR_URL, MIN_CHANNEL_TIMEOUT, NETWORK, PORT, logger, sellerConfig } from './config.js';
+import { FACILITATOR_URL, MIN_CHANNEL_TIMEOUT, NETWORK, PORT, SELLER_ID, logger, sellerConfig } from './config.js';
 
 // Seller built with the obbyx SDK (ObytePaywall). Every route accepts only
 // payment-channel vouchers (x402 scheme "batch-settlement").
@@ -15,7 +15,7 @@ const paywall = new ObytePaywall({
   network: NETWORK.caip2,
   payTo,
   secret, // HMAC key that binds each payment to one request
-  sellerId: 'obbyx-channels-example',
+  sellerId: SELLER_ID,
   store: new ConsumedProofsStore('data/proofs.db'), // one payment = one response
   logger,
   batch: { minChannelTimeoutSeconds: MIN_CHANNEL_TIMEOUT }, // enables channels

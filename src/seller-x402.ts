@@ -5,7 +5,7 @@ import { paymentMiddleware, x402ResourceServer } from '@x402/express';
 import { bazaarResourceServerExtension, declareDiscoveryExtension } from '@x402/extensions/bazaar';
 import { ConsumedProofsStore, ObyteBatchServer } from '@obbyx/sdk';
 import { ROUTES, SERVICE_NAME } from './api.js';
-import { FACILITATOR_URL, MIN_CHANNEL_TIMEOUT, NETWORK, PORT, logger, sellerConfig } from './config.js';
+import { FACILITATOR_URL, MIN_CHANNEL_TIMEOUT, NETWORK, PORT, SELLER_ID, logger, sellerConfig } from './config.js';
 
 // The same seller on the official x402 stack: @x402/express + obbyx's
 // ObyteBatchServer. Note: unlike ObytePaywall, repeating a request with an
@@ -21,7 +21,7 @@ const server = new x402ResourceServer(new HTTPFacilitatorClient({ url: FACILITAT
   .register(
     NETWORK.caip2,
     new ObyteBatchServer({
-      sellerId: 'obbyx-channels-example',
+      sellerId: SELLER_ID,
       secret,
       proofs: new ConsumedProofsStore('data/proofs-x402.db'),
       logger,

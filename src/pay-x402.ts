@@ -2,7 +2,7 @@ import { decodePaymentResponseHeader } from '@x402/core/http';
 import { wrapFetchWithPayment, x402Client } from '@x402/fetch';
 import { ROUTES, exampleRequest } from './api.js';
 import { withBuyer } from './buyer.js';
-import { NETWORK, SELLER_URL } from './config.js';
+import { MAX_PRICE, NETWORK, SELLER_URL } from './config.js';
 
 // The same buyer on the official x402 stack: @x402/fetch + obbyx's
 // BatchObyteClient. Works with either seller variant. Calls every route in
@@ -13,7 +13,7 @@ await withBuyer(async (buyer) => {
   const client = new x402Client()
     // GBYTE is not a default x402 asset: allow it explicitly, with a cap per payment.
     .setSpendControls({
-      allowedAssets: [{ network: NETWORK.caip2, asset: 'base', maxAmountPerPayment: '10000' }],
+      allowedAssets: [{ network: NETWORK.caip2, asset: 'base', maxAmountPerPayment: String(MAX_PRICE) }],
     })
     .register(NETWORK.caip2, buyer.batch);
   const paidFetch = wrapFetchWithPayment(fetch, client);

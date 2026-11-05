@@ -8,6 +8,9 @@
 #   OBBYX_SELLER_HOME   seller wallet directory, default ~/.obbyx-seller
 #   MIN_CHANNEL_TIMEOUT smallest channel dispute window the facilitator accepts
 #   OBBYX_REF           git branch/tag/commit of obbyx to build, default master
+#
+# After changing OBBYX_REF (or pulling a new master) rebuild BOTH images: the
+# facilitator and the watcher share a protocol version (`up -d --build`).
 x-obbyx-src: &obbyx-src https://github.com/Taump/obbyx.git#${OBBYX_REF:-master}
 
 # Same as obbyx's own Dockerfile, plus build tools: better-sqlite3 has no prebuilt
@@ -47,7 +50,7 @@ services:
       PACKAGE_KEY_FILE: /data/package.key # encrypts stored vouchers; keep it out of DB copies
       NETWORKS: ${NETWORK:-obyte:testnet}
       FINALITY: accepted # demo: answer as soon as the unit is accepted (default: stable)
-      MIN_CHANNEL_TIMEOUT_SECONDS: ${MIN_CHANNEL_TIMEOUT:-3600}
+      MIN_CHANNEL_TIMEOUT_SECONDS: ${MIN_CHANNEL_TIMEOUT:-14400}
     ports:
       - '127.0.0.1:4021:4021'
     volumes:
@@ -73,6 +76,7 @@ services:
     environment:
       NETWORK: ${NETWORK:-obyte:testnet}
       FACILITATOR_URL: http://facilitator:4021
+      FACILITATOR_ALLOW_HTTP: '1' # plain http only inside this compose network; use https:// across hosts
       DB_PATH: /data/watcher.db # the stored vouchers are the seller's money: do not lose this volume
       OBBYX_HOME: /wallet
     volumes:

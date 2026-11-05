@@ -2,13 +2,13 @@ import { parseArgs } from 'node:util';
 import { explorerUnitUrl, fromDisplay } from '@obbyx/obyte';
 import { closeChannel, confirmClose, deposit, hubCall, openChannel } from '@obbyx/x402-obyte';
 import { sellerAddress, withBuyer } from './buyer.js';
-import { MIN_CHANNEL_TIMEOUT, NETWORK, gbyte } from './config.js';
+import { DEFAULT_DEPOSIT, MIN_CHANNEL_TIMEOUT, NETWORK, gbyte } from './config.js';
 
-const USAGE = `Usage: npm run channel -- <command>
+const USAGE = `Usage: pnpm channel <command>
 
-  open [GBYTE]       open a channel to the seller with a deposit (default 0.0005)
+  open [GBYTE]       open a channel to the seller with a deposit (default ${DEFAULT_DEPOSIT})
   status [--wait]    show the channel; --wait until the deposit is credited
-  deposit <GBYTE>    add funds
+  deposit [GBYTE]    add funds (default ${DEFAULT_DEPOSIT})
   close              close: the seller gets what you spent, you get the rest
   confirm            finish your close yourself if the seller did not
   list               all your channels
@@ -34,7 +34,7 @@ await withBuyer(async (buyer) => {
     const ch = values.aa
       ? buyer.store.get(values.aa)
       : buyer.store.find(NETWORK.caip2, await sellerAddress(), 'base');
-    if (!ch) throw new Error('No channel yet. Open one: npm run channel -- open');
+    if (!ch) throw new Error('No channel yet. Open one: pnpm channel open');
     return ch;
   };
   // The channel AA's state on the ledger.
@@ -49,11 +49,11 @@ await withBuyer(async (buyer) => {
       const payTo = await sellerAddress();
       const { aa, unit } = await openChannel(buyer.options, {
         payTo,
-        deposit: fromDisplay(amount ?? '0.0005', 9),
+        deposit: fromDisplay(amount ?? DEFAULT_DEPOSIT, 9),
         timeout: Number(values.window),
       });
       console.log(`Opened channel ${aa} to ${payTo}\n${link(unit)}`);
-      console.log('Usable once the deposit is credited: npm run channel -- status --wait');
+      console.log('Usable once the deposit is credited: pnpm channel status --wait');
       break;
     }
 
@@ -73,12 +73,15 @@ await withBuyer(async (buyer) => {
               (state.close_initiated_by ? ', CLOSING' : ''),
       );
       console.log(`  spent:   ${gbyte(ch.committed)}${ch.pending ? ' (+1 voucher with unknown outcome)' : ''}`);
+      if (ch.maxSigned > ch.committed) {
+        console.log(`  signed:  ${gbyte(ch.maxSigned)} (a close declares this: the seller may hold that voucher)`);
+      }
       break;
     }
 
     case 'deposit': {
       const ch = await channel();
-      const unit = await deposit(buyer.options, ch.aa, fromDisplay(amount ?? '0.0005', 9));
+      const unit = await deposit(buyer.options, ch.aa, fromDisplay(amount ?? DEFAULT_DEPOSIT, 9));
       console.log(`Deposited to ${ch.aa}\n${link(unit)}`);
       break;
     }
@@ -86,11 +89,13 @@ await withBuyer(async (buyer) => {
     case 'close': {
       const ch = await channel();
       if (ch.pending) throw new Error('A voucher has an unknown outcome; repeat that request or reset it first');
-      // Declares the amount spent. Declaring less than signed would be
-      // answered by the seller's watcher with a fraud proof.
-      const unit = await closeChannel(buyer.options, ch.aa, ch.period, ch.committed);
-      console.log(`Closing ${ch.aa}, spent ${gbyte(ch.committed)}\n${link(unit)}`);
-      console.log(`The seller's watcher confirms in ~2 min. If not, after ${ch.timeout} s: npm run channel -- confirm`);
+      // Declares the HIGHEST amount ever signed in this period, not the last
+      // confirmed one: if the seller holds a higher voucher, declaring less lets
+      // it take the whole channel with a fraud proof. At worst this pays for one
+      // request that was not served.
+      const unit = await closeChannel(buyer.options, ch.aa, ch.period, ch.maxSigned);
+      console.log(`Closing ${ch.aa}, spent ${gbyte(ch.maxSigned)}\n${link(unit)}`);
+      console.log(`The seller's watcher confirms in ~2 min. If not, after ${ch.timeout} s: pnpm channel confirm`);
       break;
     }
 
@@ -104,13 +109,17 @@ await withBuyer(async (buyer) => {
     case 'list': {
       const all = buyer.store.list().filter((c) => c.network === NETWORK.caip2);
       if (all.length === 0) console.log('No channels.');
-      for (const c of all) console.log(`${c.aa}  seller ${c.payTo}  spent ${gbyte(c.committed)}`);
+      for (const c of all) {
+        const signed = c.maxSigned > c.committed ? ` (signed ${gbyte(c.maxSigned)})` : '';
+        console.log(`${c.aa}  seller ${c.payTo}  spent ${gbyte(c.committed)}${signed}`);
+      }
       break;
     }
 
     // While a voucher's outcome is unknown no new one is signed (no double
     // payment). If the facilitator never got it, it is safe to forget. Even
-    // if it did, the next voucher re-syncs with the facilitator's amount.
+    // if it did, the next voucher re-syncs with the facilitator's amount, and
+    // a close still declares it (maxSigned is never lowered).
     case 'reset': {
       const ch = await channel();
       if (!ch.pending) {

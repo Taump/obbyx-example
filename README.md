@@ -41,7 +41,7 @@ address on testnet and livenet). Each copy is fixed to its parameters:
     "addressA": "N34IXR36P22HBL2X5PS2OR5XCU6FQYPI",
     "addressB": "IJMD4SMQGTFGSIK4LFV2E3KG7RD6SZ3C",
     "asset": "base",
-    "timeout": 3600,
+    "timeout": 14400,
     "salt": "da644c827c75343b78c3fad5"
   }
 }
@@ -152,6 +152,9 @@ docker compose up -d --build      # the first build takes a few minutes
 curl http://127.0.0.1:4021/health
 ```
 
+After updating obbyx (a new `master` or `OBBYX_REF`), rebuild both services
+with `--build`: the facilitator and the watcher must run the same version.
+
 ### 3. Seller
 
 ```sh
@@ -227,7 +230,7 @@ run it and the facilitator on public HTTPS addresses. `src/seller.ts`
 ```text
 pnpm channel open [GBYTE]       open a channel to the seller (default 0.0005)
 pnpm channel status [--wait]    deposit and amount spent
-pnpm channel deposit <GBYTE>    add funds
+pnpm channel deposit [GBYTE]    add funds (default 0.0005)
 pnpm channel close              close: the seller gets what you spent, you get the rest
 pnpm channel confirm            finish your close yourself if the seller did not confirm it
 pnpm channel list               all your channels
@@ -248,7 +251,7 @@ The channels are shared with the obbyx CLI: `npx obbyx channel list`.
 | `FACILITATOR_URL`     | `http://127.0.0.1:4021` |                                                        |
 | `SELLER_URL`          | `http://127.0.0.1:3402` | Where the buyer scripts send requests                  |
 | `PORT`                | `3402`                  | Seller port                                            |
-| `MIN_CHANNEL_TIMEOUT` | `3600`                  | Smallest dispute window (seconds) a channel may have   |
+| `MIN_CHANNEL_TIMEOUT` | `14400`                 | Smallest dispute window (seconds) a channel may have   |
 
 `OBBYX_HOME` (default `~/.obbyx`) selects the buyer wallet.
 
@@ -263,6 +266,7 @@ scripts refuse `NETWORK=obyte:livenet` unless `ALLOW_LIVENET=1` is also set.
 | `channel_not_funded`   | The deposit is not stable yet: `pnpm channel status --wait`                                             |
 | `channel_exhausted`    | The deposit is used up: `pnpm channel deposit 0.0005`                                                   |
 | `…watcher_unavailable` | The watcher is down or has < 100 000 bytes: `docker compose logs watcher`                               |
+| `…voucher_refused`     | The watcher refused that voucher (nothing was charged, the channel is free again): just pay again      |
 | `payment_pending`      | A previous voucher has an unknown outcome (e.g. the facilitator was down). If the facilitator never received it: `pnpm channel reset --yes` |
 | `"pino-pretty"` error  | Run `pnpm install` (it installs `pino-pretty`)                                                          |
 
@@ -277,6 +281,8 @@ The services log JSON. To read it:
 | One voucher pays for two requests          | Each voucher raises the total by exactly the price and is bound to one request       |
 | The seller loses a paid voucher            | A call succeeds only after the watcher has stored the voucher                        |
 | The buyer closes declaring less than spent | The watcher answers with the buyer's own signed voucher (fraud proof)                |
+| The buyer is tricked into declaring less   | `channel close` declares the highest amount the buyer ever signed, which the seller's answers can never lower |
+| Someone fakes the watcher's confirmation   | The watcher signs every confirmation (and refusal) with the seller's key             |
 | The seller asks too much                   | Price caps: `maxAmount`, `SpendingBudget`, `setSpendControls`                         |
 | A call fails halfway                       | No new voucher is signed until the outcome of the last one is known                  |
 

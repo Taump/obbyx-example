@@ -8,7 +8,7 @@ import {
   CoinReservations,
   ReservingComposer,
 } from '@obbyx/x402-obyte';
-import { NETWORK, SELLER_URL, logger } from './config.js';
+import { MAX_PRICE, NETWORK, SELLER_URL, logger } from './config.js';
 
 /**
  * Everything a buyer script needs. The wallet and the channel database are the
@@ -36,7 +36,7 @@ export function openBuyer() {
       logger,
     }),
     // Never sign a voucher above this price, whatever the seller asks.
-    maxAmount: new Map([['base', 10_000n]]),
+    maxAmount: new Map([['base', MAX_PRICE]]),
   };
 
   return {
@@ -69,7 +69,7 @@ export async function withBuyer(body: (buyer: ReturnType<typeof openBuyer>) => P
     const code = (err as { code?: string }).code;
     console.error(`Error: ${err instanceof Error ? err.message : String(err)}`);
     if (code === 'payment_pending') {
-      console.error('If the facilitator never received that voucher: npm run channel -- reset --yes');
+      console.error('If the facilitator never received that voucher: pnpm channel reset --yes');
     }
     process.exitCode = 1;
   } finally {
