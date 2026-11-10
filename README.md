@@ -206,11 +206,13 @@ pnpm pay:x402                     # @x402/fetch + BatchObyteClient: one call per
 `seller-x402` also lists its routes in the facilitator's catalog, so agents
 can find them: `GET /discovery/resources` and `GET /discovery/search`.
 
-1. Every 402 carries a card of the route: description, tags, a sample call
-   and its answer (`declareDiscoveryExtension`, from `example` in `src/api.ts`).
+1. Every 402 carries the route's description and tags, plus a Bazaar discovery
+   declaration (`extensions.bazaar`): a sample call and its answer
+   (`declareDiscoveryExtension`, from `example` in `src/api.ts`).
    `bazaarResourceServerExtension` adds the HTTP method to it.
-2. The buyer copies the card into its payment.
-3. After the payment the facilitator checks the card and adds it to its catalog.
+2. The buyer echoes the declaration in its payment.
+3. After the payment the facilitator validates the declaration and adds the
+   route to its catalog.
 
 So a route appears after its first paid call:
 
@@ -223,7 +225,8 @@ pnpm catalog prices               # search by description, service name and tags
 
 The catalog stores the URL that was paid for. For others to find your API,
 run it and the facilitator on public HTTPS addresses. `src/seller.ts`
-(`ObytePaywall`) cannot declare cards yet; use `seller-x402` for the catalog.
+(`ObytePaywall`) cannot send discovery declarations yet; use `seller-x402`
+for the catalog.
 
 ## Channel commands
 

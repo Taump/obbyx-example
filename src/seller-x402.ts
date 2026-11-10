@@ -12,8 +12,8 @@ import { FACILITATOR_URL, MIN_CHANNEL_TIMEOUT, NETWORK, PORT, SELLER_ID, logger,
 // already used voucher gets a 402 instead of the stored response.
 //
 // It also lists the routes in the x402 catalog (Bazaar): each 402 carries a
-// card of the route, and after the first paid call the facilitator adds it to
-// its catalog (GET /discovery/resources).
+// Bazaar discovery declaration (extensions.bazaar), and after the first paid
+// call the facilitator adds the route to its catalog (GET /discovery/resources).
 const { payTo, secret } = sellerConfig();
 mkdirSync('data', { recursive: true });
 
@@ -28,7 +28,7 @@ const server = new x402ResourceServer(new HTTPFacilitatorClient({ url: FACILITAT
       minChannelTimeoutSeconds: MIN_CHANNEL_TIMEOUT,
     }),
   )
-  // Adds the HTTP method (and route template) to each route's card at request time.
+  // Adds the HTTP method (and route template) to each route's discovery declaration at request time.
   .registerExtension(bazaarResourceServerExtension);
 
 const app = express();
@@ -54,7 +54,7 @@ app.use(
           mimeType: 'application/json',
           serviceName: SERVICE_NAME,
           tags: r.tags,
-          // The route's card in the catalog: a sample call and its answer.
+          // Bazaar discovery declaration: a sample call and its answer.
           extensions: declareDiscoveryExtension(
             r.method === 'POST'
               ? { bodyType: 'json', input: r.example.input, output: { example: r.example.output } }
