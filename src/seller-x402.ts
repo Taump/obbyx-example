@@ -3,12 +3,12 @@ import express from 'express';
 import { HTTPFacilitatorClient } from '@x402/core/http';
 import { paymentMiddleware, x402ResourceServer } from '@x402/express';
 import { bazaarResourceServerExtension, declareDiscoveryExtension } from '@x402/extensions/bazaar';
-import { ConsumedProofsStore, ObyteBatchServer } from '@obbyx/sdk';
+import { ConsumedProofsStore, BatchObyteServer } from '@obbyx/sdk';
 import { ROUTES, SERVICE_NAME } from './api.js';
 import { FACILITATOR_URL, MIN_CHANNEL_TIMEOUT, NETWORK, PORT, SELLER_ID, logger, sellerConfig } from './config.js';
 
 // The same seller on the official x402 stack: @x402/express + obbyx's
-// ObyteBatchServer. Note: unlike ObytePaywall, repeating a request with an
+// BatchObyteServer. Note: unlike ObytePaywall, repeating a request with an
 // already used voucher gets a 402 instead of the stored response.
 //
 // It also lists the routes in the x402 catalog (Bazaar): each 402 carries a
@@ -20,7 +20,7 @@ mkdirSync('data', { recursive: true });
 const server = new x402ResourceServer(new HTTPFacilitatorClient({ url: FACILITATOR_URL }))
   .register(
     NETWORK.caip2,
-    new ObyteBatchServer({
+    new BatchObyteServer({
       sellerId: SELLER_ID,
       secret,
       proofs: new ConsumedProofsStore('data/proofs-x402.db'),

@@ -3,7 +3,7 @@ import obyte from 'obyte';
 import { loadWallet, obbyxHome } from '@obbyx/obyte/wallet';
 import {
   BatchObyteClient,
-  type BatchClientOptions,
+  type BatchObyteClientOptions,
   ClientChannelStore,
   CoinReservations,
   ReservingComposer,
@@ -21,7 +21,7 @@ export function openBuyer() {
   const client = new obyte.Client(NETWORK.defaultHubUrl, { testnet: NETWORK.testnet });
   const store = new ClientChannelStore(join(home, `channels-${NETWORK.name}.db`));
 
-  const options: BatchClientOptions = {
+  const options: BatchObyteClientOptions = {
     client,
     network: NETWORK,
     privateKey: wallet.privateKey,

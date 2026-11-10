@@ -47,7 +47,10 @@ services:
     environment:
       HOST: 0.0.0.0 # inside the container; published on localhost only (below)
       DB_PATH: /data/facilitator.db
-      PACKAGE_KEY_FILE: /data/package.key # encrypts stored vouchers; keep it out of DB copies
+      # Encrypts stored vouchers. Demo: kept in the data volume (the facilitator logs a
+      # warning). In production mount it separately, as obbyx's own docker-compose.yml
+      # does (read-only secret), see obbyx docs/guide/security.md.
+      PACKAGE_KEY_FILE: /data/package.key
       NETWORKS: ${NETWORK:-obyte:testnet}
       FINALITY: accepted # demo: answer as soon as the unit is accepted (default: stable)
       MIN_CHANNEL_TIMEOUT_SECONDS: ${MIN_CHANNEL_TIMEOUT:-14400}

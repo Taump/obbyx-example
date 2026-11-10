@@ -6,10 +6,10 @@ allowBuilds:
 overrides:
   '@x402/core': 2.30.0
 minimumReleaseAgeExclude:
-  - '@obbyx/cli@0.1.5'
-  - '@obbyx/obyte@0.2.0'
-  - '@obbyx/sdk@0.3.0'
-  - '@obbyx/x402-obyte@0.3.0'
+  - '@obbyx/cli@0.2.0'
+  - '@obbyx/obyte@0.3.0'
+  - '@obbyx/sdk@0.4.0'
+  - '@obbyx/x402-obyte@0.4.0'
   - '@x402/core@2.30.0'
   - '@x402/express@2.30.0'
   - '@x402/extensions@2.30.0'

@@ -10,11 +10,13 @@ const USAGE = `Usage: pnpm channel <command>
   status [--wait]    show the channel; --wait until the deposit is credited
   deposit [GBYTE]    add funds (default ${DEFAULT_DEPOSIT})
   close              close: the seller gets what you spent, you get the rest
-  confirm            finish your close yourself if the seller did not
+  confirm            finish a close (yours after the window, the seller's at once)
   list               all your channels
   reset [--yes]      forget a voucher stuck with an unknown outcome
 
-Options: --window <seconds> (open), --aa <address> (pick a channel)`;
+Options: --window <seconds> (open), --aa <address> (pick a channel)
+Close:   --declare <GBYTE> | --force   (needed only when the channel is "uncertain")
+         --resend                      (send your close again)`;
 
 const { positionals, values } = parseArgs({
   allowPositionals: true,
@@ -22,6 +24,9 @@ const { positionals, values } = parseArgs({
     window: { type: 'string', default: String(MIN_CHANNEL_TIMEOUT) },
     aa: { type: 'string' },
     wait: { type: 'boolean' },
+    declare: { type: 'string' },
+    force: { type: 'boolean' },
+    resend: { type: 'boolean' },
     yes: { type: 'boolean' },
   },
 });
@@ -76,6 +81,14 @@ await withBuyer(async (buyer) => {
       if (ch.maxSigned > ch.committed) {
         console.log(`  signed:  ${gbyte(ch.maxSigned)} (a close declares this: the seller may hold that voucher)`);
       }
+      if (ch.legacy) console.log('  LEGACY:  base AA v1.1 — close it and open a new channel (pnpm channel close)');
+      if (ch.uncertainty) {
+        console.log(`  UNCERTAIN (${ch.uncertainty}): more than "signed" may have been signed; close with --declare or --force`);
+      }
+      if (ch.lastClose && ch.lastClose.period >= (state.period ?? 0)) {
+        const declared = ch.lastClose.declared === null ? '' : `, declared ${gbyte(ch.lastClose.declared)}`;
+        console.log(`  close:   period ${ch.lastClose.period}, ${ch.lastClose.state}${declared}`);
+      }
       break;
     }
 
@@ -88,20 +101,36 @@ await withBuyer(async (buyer) => {
 
     case 'close': {
       const ch = await channel();
-      if (ch.pending) throw new Error('A voucher has an unknown outcome; repeat that request or reset it first');
-      // Declares the HIGHEST amount ever signed in this period, not the last
-      // confirmed one: if the seller holds a higher voucher, declaring less lets
-      // it take the whole channel with a fraud proof. At worst this pays for one
-      // request that was not served.
-      const unit = await closeChannel(buyer.options, ch.aa, ch.period, ch.maxSigned);
-      console.log(`Closing ${ch.aa}, spent ${gbyte(ch.maxSigned)}\n${link(unit)}`);
-      console.log(`The seller's watcher confirms in ~2 min. If not, after ${ch.timeout} s: pnpm channel confirm`);
+      // The library declares the HIGHEST amount ever signed in this period
+      // (a pending voucher included) and stops signing before it sends the
+      // close: declaring less would let the seller take the whole deposit
+      // with a fraud proof.
+      const res = await closeChannel(buyer.options, ch.aa, {
+        ...(values.declare === undefined ? {} : { declare: fromDisplay(values.declare, 9) }),
+        force: values.force === true,
+        resend: values.resend === true,
+      });
+      if (res.kind === 'already_closing') {
+        console.log(
+          res.by === 'A'
+            ? 'The seller is closing this channel: pnpm channel confirm (allowed at once)'
+            : `Your close is pending; confirm after ${new Date(res.confirmableAt * 1000).toISOString()}: pnpm channel confirm`,
+        );
+      } else if (res.kind === 'sent_earlier') {
+        console.log(
+          `A close declaring ${gbyte(res.declared)} was already sent (${res.state}) but is not on-chain yet; ` +
+            'wait, or send it again: pnpm channel close --resend',
+        );
+      } else {
+        console.log(`Closing ${ch.aa}, declared ${gbyte(res.declared)}\n${link(res.unit)}`);
+        console.log(`The seller's watcher confirms in ~2 min. If not, after ${ch.timeout} s: pnpm channel confirm`);
+      }
       break;
     }
 
     case 'confirm': {
       const ch = await channel();
-      const unit = await confirmClose(buyer.options, ch.aa, ch.period);
+      const { unit } = await confirmClose(buyer.options, ch.aa);
       console.log(`Close confirmed\n${link(unit)}`);
       break;
     }
@@ -111,7 +140,8 @@ await withBuyer(async (buyer) => {
       if (all.length === 0) console.log('No channels.');
       for (const c of all) {
         const signed = c.maxSigned > c.committed ? ` (signed ${gbyte(c.maxSigned)})` : '';
-        console.log(`${c.aa}  seller ${c.payTo}  spent ${gbyte(c.committed)}${signed}`);
+        const legacy = c.legacy ? '  [legacy v1.1: close it]' : '';
+        console.log(`${c.aa}  seller ${c.payTo}  spent ${gbyte(c.committed)}${signed}${legacy}`);
       }
       break;
     }
@@ -127,7 +157,7 @@ await withBuyer(async (buyer) => {
       } else if (!values.yes) {
         console.log(`Stuck voucher: cumulative ${ch.pending.amountSpent} bytes. Run again with --yes to forget it.`);
       } else {
-        buyer.store.dropPending(ch.aa);
+        buyer.store.dropPending(ch.aa, ch.pending);
         console.log('Forgotten; the channel is usable again.');
       }
       break;

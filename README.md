@@ -30,13 +30,17 @@ contracts, which is all this example needs.
 ### How a channel lives on Obyte
 
 All channels are copies of one base AA,
-[`4IRUGAUUCAQ6QRQLG4SNOLOE6VW2STWZ`](https://testnetexplorer.obyte.org/address/4IRUGAUUCAQ6QRQLG4SNOLOE6VW2STWZ)
-from [aa-channels-lib](https://github.com/byteball/aa-channels-lib) (the same
-address on testnet and livenet). Each copy is fixed to its parameters:
+[`7UXLI64FC7TMDFGIZZ34GIJHZIGTZUZR`](https://testnetexplorer.obyte.org/address/7UXLI64FC7TMDFGIZZ34GIJHZIGTZUZR)
+(v1.2: the [aa-channels-lib](https://github.com/byteball/aa-channels-lib) base AA
+with one fix, a fraud proof pays the side that was cheated, not whoever sends
+it). It is deployed on **testnet only** for now, so channels work on testnet
+only. Channels opened with an older obbyx are on v1.1
+(`4IRUGAUUCAQ6QRQLG4SNOLOE6VW2STWZ`): close them and open new ones. Each copy
+is fixed to its parameters:
 
 ```json
 {
-  "base_aa": "4IRUGAUUCAQ6QRQLG4SNOLOE6VW2STWZ",
+  "base_aa": "7UXLI64FC7TMDFGIZZ34GIJHZIGTZUZR",
   "params": {
     "addressA": "N34IXR36P22HBL2X5PS2OR5XCU6FQYPI",
     "addressB": "IJMD4SMQGTFGSIK4LFV2E3KG7RD6SZ3C",
@@ -56,7 +60,7 @@ see this definition for any channel in the explorer.
 | Open  | One unit: the channel's definition and the first deposit. The deposit counts once stable.                                                                                                                  |
 | Pay   | Nothing. The buyer signs vouchers with its Obyte key; the seller's watcher keeps them.                                                                                                                     |
 | Close | One side declares how much it spent. The other side confirms, or the closing side confirms itself after the dispute window. Then the AA pays the seller what was spent and returns the rest to the buyer. |
-| Fraud | If the buyer declares less than a voucher it signed, the watcher sends that voucher to the AA, and the AA gives the **whole** channel balance to the seller.                                               |
+| Fraud | If the buyer declares less than a voucher it signed, that voucher is a fraud proof: anyone may send it to the AA (the watcher does), and the AA gives the **whole** channel balance to the seller.       |
 | Reuse | After a close the channel starts a new **period** and can be funded again.                                                                                                                                 |
 
 Commands to a channel (close, confirm) are sent with 10 000 bytes, the AA's
@@ -197,7 +201,7 @@ The same flow works with the official `@x402/*` packages. obbyx adds the Obyte
 scheme to them:
 
 ```sh
-pnpm seller:x402                  # @x402/express + ObyteBatchServer
+pnpm seller:x402                  # @x402/express + BatchObyteServer
 pnpm pay:x402                     # @x402/fetch + BatchObyteClient: one call per route
 ```
 
@@ -260,6 +264,8 @@ The channels are shared with the obbyx CLI: `npx obbyx channel list`.
 
 Livenet means real GBYTE, and obbyx has not been run on mainnet yet. The
 scripts refuse `NETWORK=obyte:livenet` unless `ALLOW_LIVENET=1` is also set.
+Channel payments (this example) need the base AA v1.2, which is not deployed
+on livenet yet: the facilitator does not offer channels there.
 
 ## Troubleshooting
 
@@ -271,6 +277,9 @@ scripts refuse `NETWORK=obyte:livenet` unless `ALLOW_LIVENET=1` is also set.
 | `…watcher_unavailable` | The watcher is down or has < 100 000 bytes: `docker compose logs watcher`                               |
 | `…voucher_refused`     | The watcher refused that voucher (nothing was charged, the channel is free again): just pay again      |
 | `payment_pending`      | A previous voucher has an unknown outcome (e.g. the facilitator was down). If the facilitator never received it: `pnpm channel reset --yes` |
+| `legacy_channel`       | The channel is on the old base AA v1.1: `pnpm channel close`, then `pnpm channel open`                  |
+| `max_signed_uncertain` | Closing a channel recorded by an older obbyx: `pnpm channel close --declare <GBYTE>` (or `--force`)      |
+| `channel_closing`      | A close was started: wait for it (`pnpm channel status`), then deposit again for a new period            |
 | `"pino-pretty"` error  | Run `pnpm install` (it installs `pino-pretty`)                                                          |
 
 The services log JSON. To read it:

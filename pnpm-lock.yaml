@@ -12,14 +12,14 @@ importers:
   .:
     dependencies:
       '@obbyx/obyte':
-        specifier: ^0.2.0
-        version: 0.2.0(pino-pretty@13.2.0)
-      '@obbyx/sdk':
-        specifier: ^0.3.0
-        version: 0.3.0(express@5.3.0)(pino-pretty@13.2.0)
-      '@obbyx/x402-obyte':
         specifier: ^0.3.0
         version: 0.3.0(pino-pretty@13.2.0)
+      '@obbyx/sdk':
+        specifier: ^0.4.0
+        version: 0.4.0(express@5.3.0)(pino-pretty@13.2.0)
+      '@obbyx/x402-obyte':
+        specifier: ^0.4.0
+        version: 0.4.0(pino-pretty@13.2.0)
       '@x402/core':
         specifier: 2.30.0
         version: 2.30.0
@@ -40,8 +40,8 @@ importers:
         version: 0.2.1
     devDependencies:
       '@obbyx/cli':
-        specifier: ^0.1.5
-        version: 0.1.5(express@5.3.0)
+        specifier: ^0.2.0
+        version: 0.2.0(express@5.3.0)
       '@types/express':
         specifier: ^5.0.6
         version: 5.0.6
@@ -239,13 +239,13 @@ packages:
     resolution: {integrity: sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==}
     engines: {node: ^14.21.3 || >=16}
 
-  '@obbyx/cli@0.1.5':
-    resolution: {integrity: sha512-aZ2Virg0hZORtBWFeaA0dAVZ2EJabfb9ranzRHoZTwvvk9hvBuqt7fjc4dYoeqDlXduhZySoZMnz4CUkfoVRYw==}
+  '@obbyx/cli@0.2.0':
+    resolution: {integrity: sha512-dBVslc+M9i4sRtAOGBy2EHRC/VV4ABbasZHT3UReoOOlYqcnow3zMQe7M6TocB7qX1ZQLjAmUn7Rkou7Eha66Q==}
     engines: {node: '>=24'}
     hasBin: true
 
-  '@obbyx/obyte@0.2.0':
-    resolution: {integrity: sha512-i2YzAYy/BRE51VbuDBKl2DJ1W3FyOE0zBBpP1Shs1Sn2Wl3py6uxYLFM/xbC1cC2MaWx3Yk+5L8Wh83ecuvBHA==}
+  '@obbyx/obyte@0.3.0':
+    resolution: {integrity: sha512-kIrWRni2Qb4V+xYcKJvBlvSeYmExzbBU0zMwQ41Ja+LGY7hk5nnR6JFjgFdnNhka+7R7pCS+P5C2Az6icwDy8w==}
     engines: {node: '>=24'}
     peerDependencies:
       pino-pretty: '>=13'
@@ -253,8 +253,8 @@ packages:
       pino-pretty:
         optional: true
 
-  '@obbyx/sdk@0.3.0':
-    resolution: {integrity: sha512-KrnXgPYJYG2iGXMHEgcbT85WfhAONqZ9JJZh9AIFrIr4OuZ/AZA9w2Ry3hb682KijysHA0wZrCjoU7rbY6Ml/g==}
+  '@obbyx/sdk@0.4.0':
+    resolution: {integrity: sha512-sITiBPyzt6l5UPRMu4ZBEwO0sEVU+csAl8JeZRaTWSaemqs+wHKfTboaiKTclpBp5OG1UGrkYR7hC5O/7sO74g==}
     engines: {node: '>=24'}
     peerDependencies:
       express: ^5.0.0
@@ -262,8 +262,8 @@ packages:
       express:
         optional: true
 
-  '@obbyx/x402-obyte@0.3.0':
-    resolution: {integrity: sha512-g/rXEpKKFrbdYCznN24xaOs1y20ioDNj8p3igy89j4rdorgUr5Vfy7NINe6SEl7/6wbTWMnxrkkZ50wVafba9w==}
+  '@obbyx/x402-obyte@0.4.0':
+    resolution: {integrity: sha512-l4deUK48LUzPVkiygHZvyd+/37tVO9T9ijK+w6l5YAnvv6xpRwR3PPwhl2pyfmUz7kP4ERbcqRaPW9zvsLkutA==}
     engines: {node: '>=24'}
 
   '@pinojs/redact@0.4.0':
@@ -1097,11 +1097,11 @@ snapshots:
 
   '@noble/hashes@1.8.0': {}
 
-  '@obbyx/cli@0.1.5(express@5.3.0)':
+  '@obbyx/cli@0.2.0(express@5.3.0)':
     dependencies:
-      '@obbyx/obyte': 0.2.0(pino-pretty@13.2.0)
-      '@obbyx/sdk': 0.3.0(express@5.3.0)(pino-pretty@13.2.0)
-      '@obbyx/x402-obyte': 0.3.0(pino-pretty@13.2.0)
+      '@obbyx/obyte': 0.3.0(pino-pretty@13.2.0)
+      '@obbyx/sdk': 0.4.0(express@5.3.0)(pino-pretty@13.2.0)
+      '@obbyx/x402-obyte': 0.4.0(pino-pretty@13.2.0)
       '@x402/core': 2.30.0
       obyte: 0.2.1
       pino-pretty: 13.2.0
@@ -1111,7 +1111,7 @@ snapshots:
       - express
       - utf-8-validate
 
-  '@obbyx/obyte@0.2.0(pino-pretty@13.2.0)':
+  '@obbyx/obyte@0.3.0(pino-pretty@13.2.0)':
     dependencies:
       obyte: 0.2.1
       pino: 10.4.0
@@ -1122,10 +1122,10 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@obbyx/sdk@0.3.0(express@5.3.0)(pino-pretty@13.2.0)':
+  '@obbyx/sdk@0.4.0(express@5.3.0)(pino-pretty@13.2.0)':
     dependencies:
-      '@obbyx/obyte': 0.2.0(pino-pretty@13.2.0)
-      '@obbyx/x402-obyte': 0.3.0(pino-pretty@13.2.0)
+      '@obbyx/obyte': 0.3.0(pino-pretty@13.2.0)
+      '@obbyx/x402-obyte': 0.4.0(pino-pretty@13.2.0)
       '@x402/core': 2.30.0
       obyte: 0.2.1
       zod: 4.6.7
@@ -1136,9 +1136,9 @@ snapshots:
       - pino-pretty
       - utf-8-validate
 
-  '@obbyx/x402-obyte@0.3.0(pino-pretty@13.2.0)':
+  '@obbyx/x402-obyte@0.4.0(pino-pretty@13.2.0)':
     dependencies:
-      '@obbyx/obyte': 0.2.0(pino-pretty@13.2.0)
+      '@obbyx/obyte': 0.3.0(pino-pretty@13.2.0)
       '@x402/core': 2.30.0
       obyte: 0.2.1
       zod: 4.6.7
